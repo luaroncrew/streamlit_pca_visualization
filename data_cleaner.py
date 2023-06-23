@@ -61,7 +61,7 @@ def get_pca_ready_data() -> pandas.DataFrame:
                          'coordinate1',
                          'coordinate2'
                      ])
-                     ]
+                ]
 
     return pca_ready_data
 

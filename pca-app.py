@@ -9,8 +9,6 @@ scatter_column, settings_column = st.columns((4, 1))
 
 scatter_column.title("PCA for Multi-Dimensional Analysis demo")
 
-HOVER_DATA = ['VERY IMPORTANT POINT']
-
 
 def perform_pca(data_import):
     pca, scaled_values, pca_data, cat_cols, pca_cols, num_data = pca_maker(data_import)
@@ -21,7 +19,6 @@ def perform_pca(data_import):
             y='PCA_2',
             # color=categorical_variable,  will be defined by clustering
             template="simple_white",
-            height=800,
             hover_data=['girls_rate', 'admission_rate']
         )
     )
