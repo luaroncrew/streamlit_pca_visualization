@@ -67,7 +67,6 @@ def get_pca_ready_data(
             "Effectif total des candidats pour une formation",
             "Effectif des admis en phase complémentaire",
             'Coordonnées GPS de la formation',
-            'diploma_name',
             'Filière de formation.1',
             'Dont effectif des candidates admises',
             'Dont effectif des admis issus de la même académie',

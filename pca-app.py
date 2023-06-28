@@ -1,17 +1,22 @@
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import numpy as np
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from data_cleaner import get_pca_ready_data
+from data_getter import perform_clustering, assign_colors, get_regions, add_diploma_centers_2d
 
 # general page parameters
-st.set_page_config(layout="wide")
+st.set_page_config(layout='wide')
 scatter_column, settings_column = st.columns(2)
 
 # project title
 scatter_column.title("PCA for Multi-Dimensional Analysis demo")
+
+regions = get_regions()
 
 
 with settings_column:
@@ -21,21 +26,38 @@ with settings_column:
         ('Toute la france',),
         key='region'
     )
-    pca = PCA()
+
     df = get_pca_ready_data(option, option)
     features = ['salary', 'admission_rate', 'girls_rate', 'locals_rate']
     X = df[features]
 
     scaler = StandardScaler()
     scaled_values = scaler.fit_transform(X)
+
+    pca = PCA()
     pca.fit_transform(scaled_values)
     exp_var_cumul = np.cumsum(pca.explained_variance_ratio_)
 
     st.plotly_chart(
-        px.area(
+        px.bar(
             x=range(1, exp_var_cumul.shape[0] + 1),
             y=exp_var_cumul,
-            labels={"x": "# Components", "y": "Explained Variance"}
+            labels={"x": "Components included", "y": "Explained Variance"}
+        )
+    )
+
+    wcss = []
+    for i in range(1, 15):
+        kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
+        kmeans.fit(scaled_values)
+        wcss.append(kmeans.inertia_)
+
+    st.write('Utilisez le methode de cout pour choisir le nombre de clusters')
+    st.plotly_chart(
+        px.line(
+            x=range(1, 15),
+            y=wcss,
+            labels={'x': 'Number of clusters', 'y': 'WCSS'}
         )
     )
 
@@ -43,29 +65,25 @@ with settings_column:
 with scatter_column:
     components_number = st.selectbox(
         'Combien de composantes principales montrer?',
-        (2, 3),
+        (2, 3, 4),
         key='nb_principle_components'
     )
     clusters_total = st.selectbox(
         'Combien de clusters on fait?',
-        (2, 3, 4, 5, 6),
+        list(range(2, 15)),
+        index=2,
         key='nb_clusters'
     )
-    df = get_pca_ready_data(option, option)
-    features = ['salary', 'admission_rate', 'girls_rate', 'locals_rate']
-    X = df[features]
 
-    scaler = StandardScaler()
-    scaled_values = scaler.fit_transform(X)
+    cluster_labels = perform_clustering(n_clusters=clusters_total, scaled_data=scaled_values)
+    colors = assign_colors(cluster_labels)
 
     if components_number == 2:
         pca = PCA(n_components=2)
         components = pca.fit_transform(scaled_values)
-
         loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
 
-        # replace color by clustering labels
-        fig = px.scatter(components, x=0, y=1,)  # color=df['species'])
+        fig = px.scatter(components, x=0, y=1, color=colors)
 
         for i, feature in enumerate(features):
             fig.add_annotation(
@@ -89,6 +107,8 @@ with scatter_column:
                 yshift=5,
             )
 
+        add_diploma_centers_2d(df, components, fig)
+
         scatter_column.plotly_chart(fig)
 
     if components_number == 3:
@@ -98,8 +118,13 @@ with scatter_column:
         fig = px.scatter_3d(
             components, x=0, y=1, z=2,
             title=f'Total Explained Variance: {total_var:.2f}%',
-            labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'}
+            labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'},
+            color=colors
         )
         scatter_column.plotly_chart(fig)
+
+    if components_number == 4:
+        st.header('Spherical horse in vacuum')
+        st.image('img.png')
 
 
