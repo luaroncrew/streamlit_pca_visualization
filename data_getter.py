@@ -15,3 +15,8 @@ def get_social_levels() -> pd.Series:
     :return:
     """
     pass
+
+
+def perform_clustering(n_clusters: int, scaled_data: pd.DataFrame) -> pd.Series:
+
+

@@ -25,7 +25,6 @@ def get_pca_ready_data(
     :param social_level_filter:
     :return:
     """
-    print(region_filter, social_level_filter)
     init_data = pd.read_csv('parcoursup_but.csv')
     data = init_data.loc[:, init_data.columns.isin(VARIABLES_TO_EXCLUDE)]
     pca_ready_data = data
