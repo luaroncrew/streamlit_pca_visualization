@@ -6,23 +6,46 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from data_cleaner import get_pca_ready_data
-from data_getter import perform_clustering, assign_colors, get_regions, add_diploma_centers_2d
+from data_getter import (
+    perform_clustering,
+    assign_colors,
+    get_regions,
+    add_diploma_centers_2d,
+    add_diploma_centers_3d
+)
 
-# general page parameters
-st.set_page_config(layout='wide')
 
-first_container = st.container()
+@st.cache_data
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode('utf-8')
+
 
 regions = get_regions()
 
-st.write("Data filters:")
-option = st.selectbox(
-    'Region?',
-    ('Toute la france',),
+# general page parameters, layout
+st.set_page_config(layout='wide')
+
+st.title("Quelle est la formation BUT qui rémunére le plus?")
+first_container = st.container()
+col1, col2, col3 = st.columns(3)
+
+col1.title('Paramètres')
+region = col1.selectbox(
+    'Region',
+    (None, *list(regions)),
     key='region'
 )
 
-df = get_pca_ready_data(option, option)
+
+social_parameter = col1.selectbox(
+    'Niveau de vie',
+    ('Pas elevé', 'Moyen', 'Elevé'),
+    key='social_parameter'
+)
+
+
+df = get_pca_ready_data(region, region)
 features = ['salary', 'admission_rate', 'girls_rate', 'locals_rate']
 X = df[features]
 
@@ -33,12 +56,23 @@ pca = PCA()
 pca.fit_transform(scaled_values)
 exp_var_cumul = np.cumsum(pca.explained_variance_ratio_)
 
-st.plotly_chart(
+csv = convert_df(df)
+
+col1.download_button(
+    label="télécharger en format csv",
+    data=csv,
+    file_name='data.csv',
+    mime='text/csv',
+)
+
+col2.plotly_chart(
     px.bar(
         x=range(1, exp_var_cumul.shape[0] + 1),
         y=exp_var_cumul,
-        labels={"x": "Components included", "y": "Explained Variance"}
-    )
+        labels={"x": "Components included", "y": "Explained Variance"},
+        title='Explication cumulé de la variance par les composantes'
+    ),
+    use_container_width=True
 )
 
 wcss = []
@@ -47,22 +81,22 @@ for i in range(1, 15):
     kmeans.fit(scaled_values)
     wcss.append(kmeans.inertia_)
 
-st.write('Utilisez le methode de cout pour choisir le nombre de clusters')
-st.plotly_chart(
+col3.plotly_chart(
     px.line(
         x=range(1, 15),
         y=wcss,
-        labels={'x': 'Number of clusters', 'y': 'WCSS'}
-    )
+        labels={'x': 'Number of clusters', 'y': 'WCSS'},
+        title="Sommes des carrés intra-cluster"
+    ),
+    use_container_width=True
 )
 
-
-components_number = st.selectbox(
+components_number = col1.selectbox(
     'Combien de composantes principales montrer?',
     (2, 3, 4),
     key='nb_principle_components'
 )
-clusters_total = st.selectbox(
+clusters_total = col1.selectbox(
     'Combien de clusters on fait?',
     list(range(2, 15)),
     index=2,
@@ -89,7 +123,8 @@ if components_number == 2:
             arrowsize=2,
             arrowhead=2,
             xanchor="right",
-            yanchor="top"
+            yanchor="top",
+            arrowcolor="red"
         )
         fig.add_annotation(
             x=loadings[i, 0],
@@ -99,25 +134,29 @@ if components_number == 2:
             yanchor="bottom",
             text=feature,
             yshift=5,
+            font={'color': 'red'}
         )
 
     add_diploma_centers_2d(df, components, fig)
-
-    first_container.plotly_chart(fig, use_container_width=True, width=900)
+    fig.update_layout(showlegend=False)
+    first_container.plotly_chart(fig, use_container_width=True)
 
 if components_number == 3:
     pca = PCA(n_components=3)
     components = pca.fit_transform(scaled_values)
     total_var = pca.explained_variance_ratio_.sum() * 100
+    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
     fig = px.scatter_3d(
         components, x=0, y=1, z=2,
         title=f'Total Explained Variance: {total_var:.2f}%',
         labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'},
         color=colors
     )
-    st.plotly_chart(fig)
+    add_diploma_centers_3d(df, components, fig, features, loadings)
+    fig.update_layout(showlegend=False)
+    first_container.plotly_chart(fig, use_container_width=True)
 
 if components_number == 4:
-    st.header('Spherical horse in vacuum')
-    st.image('img.png')
+    first_container.header('Spherical horse in vacuum')
+    first_container.image('img.png')
 

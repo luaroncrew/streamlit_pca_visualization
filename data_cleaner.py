@@ -26,8 +26,14 @@ def get_pca_ready_data(
     :return:
     """
     init_data = pd.read_csv('parcoursup_but.csv')
+    if region_filter is not None:
+        init_data = init_data[init_data[
+            'Région de l’établissement'
+        ] == region_filter]
     data = init_data.loc[:, init_data.columns.isin(VARIABLES_TO_EXCLUDE)]
     pca_ready_data = data
+
+
 
     # variable modifications
     pca_ready_data['coordinate1'] = pca_ready_data[

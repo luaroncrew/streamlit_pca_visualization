@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from sklearn.cluster import KMeans
 
 
@@ -7,7 +8,9 @@ def get_regions() -> pd.Series:
     """
     must return regions available in the dataset. Used for filters choice
     """
-    pass
+    data = pd.read_csv('parcoursup_but.csv')
+    unique_regions = data['Région de l’établissement'].unique()
+    return unique_regions
 
 
 def get_social_levels() -> pd.Series:
@@ -65,17 +68,78 @@ def add_diploma_centers_2d(initial_dataframe, pc2d, plotly_figure):
         )
 
 
+def add_diploma_centers_3d(initial_dataframe, pc3d, plotly_figure, variables, loading_vectors):
 
- # annotation = {
-        #     'x': 0,
-        #     'y': 0,
-        #     'text': 'Yoooaosfsdf',
-        #     'font': {
-        #         'size': 22,
-        #         'color': 'green',
-        #     },
-        #     'bgcolor': 'white',
-        #     'opacity': 1
-        # }
-        #
-        # fig.update_layout(scene={'annotations': [annotation]})
+    diploma_positions = {}
+
+    for index, individual in enumerate(pc3d):
+        diploma = list(initial_dataframe['diploma_name'])[index]
+        if diploma_positions.get(diploma) is not None:
+            diploma_positions[diploma]['PC1'].append(individual[0])
+            diploma_positions[diploma]['PC2'].append(individual[1])
+            diploma_positions[diploma]['PC3'].append(individual[2])
+        else:
+            diploma_positions[diploma] = {
+                'PC1': [individual[0]],
+                'PC2': [individual[1]],
+                'PC3': [individual[2]]
+            }
+
+    diploma_means = {}
+    for diploma, components in diploma_positions.items():
+        mean_pc_1 = sum(components['PC1']) / len(components['PC1'])
+        mean_pc_2 = sum(components['PC2']) / len(components['PC2'])
+        mean_pc_3 = sum(components['PC3']) / len(components['PC3'])
+        diploma_means[diploma] = {
+            'PC1': mean_pc_1,
+            'PC2': mean_pc_2,
+            'PC3': mean_pc_3
+        }
+
+    means_df = pd.DataFrame(diploma_means).T
+
+    annotations = []
+    for k in range(means_df.shape[0]):
+        plotly_figure.add_trace(go.Scatter3d(
+            x=[means_df['PC1'][k]],
+            y=[means_df['PC2'][k]],
+            z=[means_df['PC3'][k]],
+            mode='markers',
+            marker={
+                'color': 'green'
+            }
+        ))
+        annotation = {
+            'x': means_df['PC1'][k],
+            'y': means_df['PC2'][k],
+            'z': means_df['PC3'][k],
+            'text': list(means_df.index)[k].split('-')[1],
+            'font': {
+                'size': 10,
+                'color': 'white',
+            },
+            'bgcolor': 'black',
+            'opacity': 0.9
+        }
+        annotations.append(annotation)
+
+    for i, feature in enumerate(variables):
+        plotly_figure.add_trace(
+            go.Scatter3d(
+                x=[0, loading_vectors[i, 0]],
+                y=[0, loading_vectors[i, 1]],
+                z=[0, loading_vectors[i, 2]],
+                mode='lines+text',
+                text=['', feature],
+                line={
+                    'width': 5,
+                    'color': 'green'
+                },
+                textfont={
+                    'size': 22,
+                    'color': 'green'
+                }
+            )
+        )
+
+    plotly_figure.update_layout(scene={'annotations': annotations})
