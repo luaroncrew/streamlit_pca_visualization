@@ -13,13 +13,6 @@ def get_regions() -> pd.Series:
     return unique_regions
 
 
-def get_social_levels() -> pd.Series:
-    """
-    get all unique social levels for cities. Used for filter choice
-    """
-    pass
-
-
 def perform_clustering(n_clusters: int, scaled_data: pd.DataFrame):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', random_state=42)
     labels = kmeans.fit_predict(scaled_data)

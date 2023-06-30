@@ -37,14 +37,6 @@ region = col1.selectbox(
     key='region'
 )
 
-
-social_parameter = col1.selectbox(
-    'Niveau de vie',
-    ('Pas elevé', 'Moyen', 'Elevé'),
-    key='social_parameter'
-)
-
-
 df = get_pca_ready_data(region, region)
 features = ['salary', 'admission_rate', 'girls_rate', 'locals_rate']
 X = df[features]
@@ -96,6 +88,7 @@ components_number = col1.selectbox(
     (2, 3, 4),
     key='nb_principle_components'
 )
+
 clusters_total = col1.selectbox(
     'Combien de clusters on fait?',
     list(range(2, 15)),
